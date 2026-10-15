@@ -1,11 +1,17 @@
 {
-  "name": "seminar1",
+  "name": "seminar4-broken-api",
   "version": "1.0.0",
+  "description": "BED411 - Seminar 4: Broken API Exercise",
+  "main": "src/app.js",
   "type": "module",
   "scripts": {
+    "start": "node src/app.js",
     "dev": "node --watch src/app.js"
   },
+  "keywords": [],
+  "author": "UFE Tech",
+  "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^4.19.2"
   }
 }
