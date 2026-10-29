@@ -6,9 +6,12 @@ export function list(req, res) {
     const allSafeUsers = users.map(({ password, ...userWithoutPassword }) => userWithoutPassword);
     return res.json(allSafeUsers);
   }
+
   const filtered = users.filter((u) => 
-    u.name && u.name.toLowerCase().includes(q.toLowerCase())
+    (u.name && u.name.toLowerCase().includes(q.toLowerCase())) ||
+    (u.email && u.email.toLowerCase().includes(q.toLowerCase()))
   );
+
   const safeUsers = filtered.map(({ password, ...userWithoutPassword }) => userWithoutPassword);
   res.json(safeUsers);
 }
