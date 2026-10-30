@@ -1,62 +1,31 @@
-import { users, addUser, findByEmail } from "../data/users.js";
-
-export function list(req, res) {
-  const { q } = req.query;
-  if (!q) {
-    const allSafeUsers = users.map(({ password, ...userWithoutPassword }) => userWithoutPassword);
-    return res.json(allSafeUsers);
+export async function getUsers(req, res) {
+  try {
+    res.json([]);
+  } catch (error) {
+    res.status(500).json({ message: "Серверийн алдаа" });
   }
-
-  const filtered = users.filter((u) => 
-    (u.name && u.name.toLowerCase().includes(q.toLowerCase())) ||
-    (u.email && u.email.toLowerCase().includes(q.toLowerCase()))
-  );
-
-  const safeUsers = filtered.map(({ password, ...userWithoutPassword }) => userWithoutPassword);
-  res.json(safeUsers);
 }
 
-export function getOne(req, res) {
+export async function getUser(req, res) {
   const id = Number(req.params.id);
-  const user = users.find((u) => u.id === id);
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+  if (Number.isNaN(id)) {
+    return res.status(400).json({ message: "id буруу байна" });
   }
-
-  const { password, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+  try {
+    res.status(404).json({ message: "Хэрэглэгч олдсонгүй" });
+  } catch (error) {
+    res.status(500).json({ message: "Серверийн алдаа" });
+  }
 }
 
-export function create(req, res) {
-  const { name, email, role, password } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: "email is required" });
+export async function createUser(req, res) {
+  const { name } = req.body;
+  if (!name) {
+    return res.status(400).json({ message: "Нэр шаардлагатай" });
   }
-
-  const newUser = addUser({ name, email, role, password });
-  const { password: _, ...userWithoutPassword } = newUser;
-  res.status(201).json(userWithoutPassword);
-}
-
-export function login(req, res) {
-  const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: "Required field missing" });
-  }
-
-  const user = findByEmail(email);
-
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-
-  if (user.password === password) {
-    const { password: _, ...userWithoutPassword } = user;
-    return res.json({ user: userWithoutPassword });
-  } else {
-    return res.status(401).json({ message: "Invalid credentials" });
+  try {
+    res.status(201).json({ id: Date.now(), name });
+  } catch (error) {
+    res.status(500).json({ message: "Алдаа гарлаа" });
   }
 }

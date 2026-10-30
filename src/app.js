@@ -1,19 +1,20 @@
+import "dotenv/config";
 import express from "express";
 import booksRouter from "./routes/books.router.js";
 import usersRouter from "./routes/users.router.js";
-import { logger } from "./middlewares/logger.js";
-import { notFound, errorHandler } from "./middlewares/error.js";
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT ?? 3000;
 
 app.use(express.json());
-app.use(logger);
 
 app.use("/books", booksRouter);
 app.use("/users", usersRouter);
 
-app.use(notFound);
-app.use(errorHandler);
+app.get("/", (req, res) => {
+  res.json({ message: "UFE Tech BED411 - Week 5 API ажиллаж байна." });
+});
 
-app.listen(PORT, () => console.log(`Сервер http://localhost:${PORT} дээр аслаа...`));
+app.listen(PORT, () => {
+  console.log(`Сервер http://localhost:${PORT} дээр аслаа.`);
+});
