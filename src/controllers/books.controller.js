@@ -1,8 +1,11 @@
+
 import { prisma } from "../db.js";
 
 export async function getBooks(req, res) {
   try {
-    const books = await prisma.book.findMany();
+    const books = await prisma.book.findMany({
+      include: { author: true },
+    });
     res.json(books);
   } catch (error) {
     res.status(500).json({ message: "Серверийн алдаа гарлаа" });
@@ -12,17 +15,14 @@ export async function getBooks(req, res) {
 export async function getBook(req, res) {
   const id = Number(req.params.id);
 
-  if (Number.isNaN(id)) {
-    return res.status(400).json({ message: "id буруу байна. Тоо байх ёстой." });
-  }
-
   try {
     const book = await prisma.book.findUnique({
       where: { id },
+      include: { author: true },
     });
 
     if (!book) {
-      return res.status(404).json({ message: "Олдсонгүй" });
+      return res.status(404).json({ message: "Ном олдсонгүй" });
     }
 
     res.json(book);
@@ -32,22 +32,21 @@ export async function getBook(req, res) {
 }
 
 export async function createBook(req, res) {
-  const { title, price, author } = req.body;
+  const { title, price, authorId } = req.body;
 
-  if (!title || typeof price !== "number") {
+  if (!title || typeof price !== "number" || !authorId) {
     return res.status(400).json({ message: "Мэдээлэл дутуу" });
   }
 
   try {
     const book = await prisma.book.create({
-      data: { 
-        title, 
-        price,
-        author
-      },
+      data: { title, price, authorId },
     });
     res.status(201).json(book);
   } catch (error) {
+    if (error.code === "P2003") {
+      return res.status(400).json({ message: "Зохиолч олдсонгүй" });
+    }
     res.status(500).json({ message: "Ном нэмэхэд алдаа гарлаа" });
   }
 }
