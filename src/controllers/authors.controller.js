@@ -3,9 +3,17 @@ import { prisma } from "../db.js";
 
 // GET /authors
 
-export const getAuthors = async (req, res) => {
+export async function getAuthors(req, res) {
   try {
     const authors = await prisma.author.findMany({
+      where: req.query.q
+        ? {
+            name: {
+              contains: req.query.q,
+              mode: "insensitive",
+            },
+          }
+        : {},
       include: {
         _count: {
           select: { books: true },
@@ -15,10 +23,13 @@ export const getAuthors = async (req, res) => {
 
     res.json(authors);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-};
+    console.error("GET AUTHORS ERROR:", error);
 
+    res.status(500).json({
+      message: "Серверийн алдаа гарлаа",
+    });
+  }
+}
 
 // GET /authors/:id
 export const getAuthor = async (req, res) => {
@@ -91,13 +102,15 @@ export const getAuthorBooks = async (req, res) => {
   }
 };
 
-
+// POST /authors/:id/books
 export const createAuthorBook = async (req, res) => {
   const authorId = Number(req.params.id);
   const { title, price } = req.body;
 
   if (!title || typeof price !== "number") {
-    return res.status(400).json({ message: "Мэдээлэл дутуу" });
+    return res.status(400).json({
+      message: "Мэдээлэл дутуу",
+    });
   }
 
   try {
@@ -108,13 +121,18 @@ export const createAuthorBook = async (req, res) => {
     res.status(201).json(book);
   } catch (error) {
     if (error.code === "P2003") {
-      return res.status(400).json({ message: "Зохиолч олдсонгүй" });
+      return res.status(400).json({
+        message: "Зохиолч олдсонгүй",
+      });
     }
-    res.status(500).json({ message: "Серверийн алдаа" });
+
+    res.status(500).json({
+      message: "Серверийн алдаа",
+    });
   }
 };
 
-
+// DELETE /authors/:id
 export const deleteAuthor = async (req, res) => {
   const id = Number(req.params.id);
 
@@ -125,7 +143,9 @@ export const deleteAuthor = async (req, res) => {
     });
 
     if (!author) {
-      return res.status(404).json({ message: "Зохиолч олдсонгүй" });
+      return res.status(404).json({
+        message: "Зохиолч олдсонгүй",
+      });
     }
 
     if (author.books.length > 0) {
@@ -134,9 +154,14 @@ export const deleteAuthor = async (req, res) => {
       });
     }
 
-    await prisma.author.delete({ where: { id } });
+    await prisma.author.delete({
+      where: { id },
+    });
+
     res.status(204).end();
   } catch (error) {
-    res.status(500).json({ message: "Серверийн алдаа" });
+    res.status(500).json({
+      message: "Серверийн алдаа",
+    });
   }
 };

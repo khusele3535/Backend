@@ -1,14 +1,110 @@
 
 import { prisma } from "../db.js";
 
+
+function buildWhere(query) {
+  const where = {};
+
+  if (query.authorId) {
+    const id = Number(query.authorId);
+    if (Number.isNaN(id)) {
+      throw { status: 400, message: "authorId тоо байх ёстой" };
+    }
+    where.authorId = id;
+  }
+
+  if (query.available !== undefined) {
+    where.isAvailable = query.available === "true";
+  }
+
+if (query.q) {
+  where.title = {
+    contains: query.q,
+    mode: "insensitive",
+  };
+}
+
+if (query.author) {
+  where.author = {
+    name: {
+      contains: query.author,
+      mode: "insensitive",
+    },
+  };
+}
+
+const price = {};
+
+if (query.minPrice !== undefined) {
+  const min = Number(query.minPrice);
+
+  if (query.minPrice === "" || !Number.isFinite(min)) {
+    throw { status: 400, message: "minPrice тоо байх ёстой" };
+  }
+
+  price.gte = min;
+}
+
+if (query.maxPrice !== undefined) {
+  const max = Number(query.maxPrice);
+
+  if (query.maxPrice === "" || !Number.isFinite(max)) {
+    throw { status: 400, message: "maxPrice тоо байх ёстой" };
+  }
+
+  price.lte = max;
+}
+
+if (Object.keys(price).length > 0) {
+  where.price = price;
+}
+
+if (query.ids) {
+  const ids = query.ids.split(",").map(Number);
+
+  if (ids.some(id => !Number.isInteger(id) || id <= 0)) {
+    throw { status: 400, message: "ids зөв тоонууд байх ёстой" };
+  }
+
+  where.id = {
+    in: ids,
+  };
+}
+
+  return where;
+}
+
+function buildOrderBy(query) {
+  const allowed = ["title", "price", "createdAt"];
+
+  const rawSort = query.sort || "createdAt";
+  const isDesc = rawSort.startsWith("-");
+  const sort = isDesc ? rawSort.slice(1) : rawSort;
+
+  const field = allowed.includes(sort) ? sort : "createdAt";
+
+  const order = isDesc
+    ? "desc"
+    : query.order === "desc"
+      ? "desc"
+      : "asc";
+
+  return { [field]: order };
+}
+
 export async function getBooks(req, res) {
   try {
     const books = await prisma.book.findMany({
+      where: buildWhere(req.query),
+      orderBy: buildOrderBy(req.query),
       include: { author: true },
     });
+
     res.json(books);
   } catch (error) {
-    res.status(500).json({ message: "Серверийн алдаа гарлаа" });
+    res.status(error.status || 500).json({
+      message: error.message || "Серверийн алдаа гарлаа",
+    });
   }
 }
 
