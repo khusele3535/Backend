@@ -1,27 +1,77 @@
 
 import { prisma } from "../db.js";
 
-// GET /authors
+//- Pagination
+function getPaging(query) {
+  const rawPage = Number(query.page);
+  const rawLimit = Number(query.limit);
 
+  const page =
+    Number.isSafeInteger(rawPage) && rawPage > 0
+      ? rawPage
+      : 1;
+
+  const limit =
+    Number.isSafeInteger(rawLimit) && rawLimit > 0
+      ? Math.min(50, rawLimit)
+      : 10;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+}
+
+// GET /authors
 export async function getAuthors(req, res) {
   try {
-    const authors = await prisma.author.findMany({
-      where: req.query.q
-        ? {
-            name: {
-              contains: req.query.q,
-              mode: "insensitive",
-            },
-          }
-        : {},
-      include: {
-        _count: {
-          select: { books: true },
+    const { page, limit, skip } = getPaging(req.query);
+
+    const where = req.query.q
+      ? {
+          name: {
+            contains: req.query.q,
+            mode: "insensitive",
+          },
+        }
+      : {};
+
+    const [authors, total] = await Promise.all([
+      prisma.author.findMany({
+        where,
+        orderBy: { id: "asc" },
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: { books: true },
+          },
         },
+      }),
+
+      prisma.author.count({ where }),
+    ]);
+
+    const pages = Math.ceil(total / limit);
+
+    if (total > 0 && page > pages) {
+      return res.status(404).json({
+        message: "Хуудас олдсонгүй",
+      });
+    }
+
+    res.json({
+      data: authors,
+      meta: {
+        page,
+        limit,
+        total,
+        pages,
+        hasNext: page < pages,
+        hasPrev: page > 1,
       },
     });
-
-    res.json(authors);
   } catch (error) {
     console.error("GET AUTHORS ERROR:", error);
 
@@ -49,7 +99,9 @@ export const getAuthor = async (req, res) => {
 
     res.json(author);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -76,7 +128,9 @@ export const createAuthor = async (req, res) => {
       });
     }
 
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
@@ -98,7 +152,9 @@ export const getAuthorBooks = async (req, res) => {
 
     res.json(author.books);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({
+      message: "Server error",
+    });
   }
 };
 
